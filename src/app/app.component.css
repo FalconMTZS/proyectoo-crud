@@ -1,0 +1,136 @@
+:host {
+  display: block;
+  min-height: 100vh;
+  padding: 24px;
+  box-sizing: border-box;
+  background: #f2f4f7;
+  font-family: Arial, Helvetica, sans-serif;
+  color: #1f2937;
+}
+
+.contenedor {
+  max-width: 1024px;
+  margin: 0 auto;
+}
+
+.encabezado {
+  margin-bottom: 24px;
+}
+
+.encabezado h1 {
+  margin: 0 0 4px;
+  font-size: 34px;
+}
+
+.encabezado p {
+  margin: 0;
+  color: #4b5563;
+}
+
+.panel-formulario,
+.panel-tabla {
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+h2 {
+  margin: 0 0 16px;
+  font-size: 20px;
+}
+
+.campo {
+  margin-bottom: 14px;
+}
+
+.campo label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.campo input,
+.campo select {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.acciones {
+  display: flex;
+  gap: 10px;
+}
+
+button {
+  border: none;
+  border-radius: 6px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-weight: 600;
+  background: #0f172a;
+  color: #ffffff;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.secundario {
+  background: #6b7280;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 10px;
+  border-bottom: 1px solid #e5e7eb;
+  vertical-align: middle;
+}
+
+thead th {
+  background: #111827;
+  color: #ffffff;
+}
+
+.th-acciones {
+  width: 170px;
+}
+
+.acciones-tabla {
+  display: flex;
+  gap: 8px;
+}
+
+.boton-editar {
+  background: #1d4ed8;
+}
+
+.boton-eliminar {
+  background: #dc2626;
+}
+
+.vacio {
+  text-align: center;
+  color: #6b7280;
+}
+
+@media (max-width: 768px) {
+  :host {
+    padding: 12px;
+  }
+
+  .acciones-tabla {
+    flex-direction: column;
+  }
+}

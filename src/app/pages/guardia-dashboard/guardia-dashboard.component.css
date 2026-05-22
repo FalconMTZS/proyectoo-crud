@@ -1,0 +1,96 @@
+:host {
+  display: block;
+  min-height: 100vh;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.layout {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.barra {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.barra h1 {
+  margin: 0 0 4px;
+  font-size: 28px;
+  color: #f8fafc;
+}
+
+.barra p {
+  margin: 0;
+  color: #cbd5e1;
+}
+
+.salir {
+  border: none;
+  border-radius: 6px;
+  padding: 10px 14px;
+  font-weight: 600;
+  cursor: pointer;
+  background: #374151;
+  color: #fff;
+}
+
+.tarjeta {
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.tarjeta h2 {
+  margin: 0 0 12px;
+  font-size: 18px;
+}
+
+.muted {
+  color: #6b7280;
+  margin: 0;
+}
+
+.ultimo {
+  margin: 0;
+}
+
+.ultimo dt {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6b7280;
+  margin-top: 10px;
+}
+
+.ultimo dt:first-child {
+  margin-top: 0;
+}
+
+.ultimo dd {
+  margin: 4px 0 0;
+  font-weight: 600;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 10px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+thead th {
+  background: #111827;
+  color: #fff;
+}

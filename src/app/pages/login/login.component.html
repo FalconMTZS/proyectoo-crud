@@ -1,0 +1,62 @@
+<main class="login">
+  <section class="tarjeta">
+    <div class="marca">
+      <span class="icono-p">P</span>
+      <div>
+        <h1>EstacionaTEC</h1>
+        <p>Estacionamiento del campus — inicia sesión y elige tu cajón</p>
+      </div>
+    </div>
+
+    @if (servidorOk() === false) {
+      <p class="aviso-servidor" role="alert">
+        No hay conexión con SQL Server. Ejecuta el script en SSMS, inicia la API (<code>npm run api</code>) y recarga.
+      </p>
+    }
+
+    @if (error) {
+      <p class="error" role="alert">{{ error }}</p>
+    }
+
+    <form (ngSubmit)="enviar()" #f="ngForm">
+      <div class="campo">
+        <label for="usuario">Usuario / No. control</label>
+        <input
+          id="usuario"
+          name="usuario"
+          type="text"
+          required
+          [(ngModel)]="usuario"
+          autocomplete="username"
+          placeholder="Ej. alumno o tu número de control"
+        />
+      </div>
+      <div class="campo">
+        <label for="password">Contraseña</label>
+        <input
+          id="password"
+          name="password"
+          type="password"
+          required
+          [(ngModel)]="password"
+          autocomplete="current-password"
+        />
+      </div>
+      <button type="submit" [disabled]="f.invalid || auth.iniciandoSesion()">
+        {{ auth.iniciandoSesion() ? 'Entrando…' : 'Entrar al estacionamiento' }}
+      </button>
+    </form>
+
+    <aside class="ayuda">
+      <details>
+        <summary>Cuentas de prueba (tras ejecutar el script SQL)</summary>
+        <ul class="demo-lista">
+          <li><strong>admin</strong> / admin — Administrador</li>
+          <li><strong>profesor</strong> / profesor — Docente</li>
+          <li><strong>alumno</strong> / alumno — Estudiante</li>
+          <li><strong>guardia</strong> / guardia — Guardia</li>
+        </ul>
+      </details>
+    </aside>
+  </section>
+</main>

@@ -1,0 +1,145 @@
+:host {
+  display: block;
+  min-height: 100vh;
+  padding: 32px 20px;
+}
+
+.login {
+  max-width: 440px;
+  margin: 0 auto;
+}
+
+.tarjeta {
+  background: var(--tarjeta);
+  border-radius: var(--radio);
+  padding: 28px;
+  box-shadow: var(--sombra);
+}
+
+.marca {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.icono-p {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--acento), #0369a1);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: 22px;
+}
+
+header h1,
+.marca h1 {
+  margin: 0;
+  font-size: 26px;
+  letter-spacing: -0.02em;
+}
+
+.marca p {
+  margin: 4px 0 0;
+  color: var(--texto-suave);
+  font-size: 14px;
+}
+
+.campo {
+  margin-bottom: 14px;
+}
+
+.campo label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.campo input {
+  width: 100%;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  padding: 11px 12px;
+  font-size: 15px;
+}
+
+.campo input:focus {
+  outline: 2px solid var(--acento);
+  border-color: transparent;
+}
+
+button[type='submit'] {
+  width: 100%;
+  margin-top: 6px;
+  border: none;
+  border-radius: 8px;
+  padding: 13px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 15px;
+  background: var(--acento);
+  color: #fff;
+}
+
+button[type='submit']:hover:not(:disabled) {
+  background: var(--acento-oscuro);
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.error,
+.aviso-servidor {
+  padding: 10px 12px;
+  border-radius: 8px;
+  margin: 0 0 14px;
+  font-size: 14px;
+}
+
+.error {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.aviso-servidor {
+  background: #fff7ed;
+  color: #9a3412;
+}
+
+.ayuda {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--borde);
+  font-size: 14px;
+  color: #475569;
+}
+
+.ayuda h2 {
+  margin: 0 0 8px;
+  font-size: 15px;
+  color: var(--texto);
+}
+
+.tip {
+  background: #ecfdf5;
+  color: #065f46;
+  padding: 10px 12px;
+  border-radius: 8px;
+}
+
+.demo-lista {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+details summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--acento-oscuro);
+}

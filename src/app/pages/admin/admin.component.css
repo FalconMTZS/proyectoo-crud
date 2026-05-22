@@ -1,0 +1,178 @@
+:host {
+  display: block;
+  min-height: 100vh;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.contenedor {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.encabezado {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.encabezado h1 {
+  margin: 0 0 4px;
+  font-size: 32px;
+  color: #f8fafc;
+}
+
+.encabezado p {
+  margin: 0;
+  color: #cbd5e1;
+}
+
+.salir {
+  flex-shrink: 0;
+  background: #374151;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.aviso {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #ecfdf5;
+  color: #065f46;
+  font-size: 14px;
+}
+
+.aviso.error {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.panel-formulario,
+.panel-tabla {
+  background: #ffffff;
+  border-radius: var(--radio);
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: var(--sombra);
+}
+
+h2 {
+  margin: 0 0 16px;
+  font-size: 20px;
+}
+
+.rejilla {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 16px;
+}
+
+.ancho-completo {
+  grid-column: 1 / -1;
+}
+
+.campo label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.campo input,
+.campo select {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.acciones {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+button {
+  border: none;
+  border-radius: 8px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-weight: 600;
+  background: var(--acento);
+  color: #ffffff;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.secundario {
+  background: #6b7280;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 10px;
+  border-bottom: 1px solid #e5e7eb;
+  vertical-align: middle;
+}
+
+thead th {
+  background: #111827;
+  color: #ffffff;
+}
+
+.th-acciones {
+  width: 190px;
+}
+
+.acciones-tabla {
+  display: flex;
+  gap: 8px;
+}
+
+.boton-editar {
+  background: #1d4ed8;
+}
+
+.boton-eliminar {
+  background: #dc2626;
+}
+
+.vacio {
+  text-align: center;
+  color: #6b7280;
+}
+
+@media (max-width: 768px) {
+  :host {
+    padding: 12px;
+  }
+
+  .rejilla {
+    grid-template-columns: 1fr;
+  }
+
+  .encabezado {
+    flex-direction: column;
+  }
+
+  .acciones-tabla {
+    flex-direction: column;
+  }
+}

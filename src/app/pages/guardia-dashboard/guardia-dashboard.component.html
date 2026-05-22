@@ -1,0 +1,51 @@
+<main class="layout">
+  <header class="barra">
+    <div>
+      <h1>EstacionaTEC</h1>
+      <p>Panel de guardia — último ingreso y ocupación</p>
+    </div>
+    <button type="button" class="salir" (click)="cerrarSesion()">Cerrar sesión</button>
+  </header>
+
+  <section class="tarjeta">
+    <h2>Último en registrar cajón</h2>
+    @if (parking.ultimoIngreso(); as u) {
+      <dl class="ultimo">
+        <dt>Usuario</dt>
+        <dd>{{ u.usuario }}</dd>
+        <dt>Rol</dt>
+        <dd>{{ u.rolEtiqueta }}</dd>
+        <dt>Cajón</dt>
+        <dd>{{ u.lugarId }}</dd>
+        <dt>Fecha y hora</dt>
+        <dd>{{ u.fechaHora | date: 'medium' }}</dd>
+      </dl>
+    } @else {
+      <p class="muted">Aún no hay registros de asignación de cajón.</p>
+    }
+  </section>
+
+  <section class="tarjeta">
+    <h2>Lugares ocupados</h2>
+    @if (parking.ocupados().length === 0) {
+      <p class="muted">Todo el estacionamiento está libre.</p>
+    } @else {
+      <table>
+        <thead>
+          <tr>
+            <th>Cajón</th>
+            <th>Ocupante</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (l of parking.ocupados(); track l.id) {
+            <tr>
+              <td>{{ l.id }}</td>
+              <td>{{ l.ocupadoPorNombre }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  </section>
+</main>

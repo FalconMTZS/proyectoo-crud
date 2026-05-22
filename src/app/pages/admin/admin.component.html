@@ -1,0 +1,123 @@
+<main class="contenedor">
+  <header class="encabezado">
+    <div>
+      <h1>EstacionaTEC</h1>
+      <p>Gestión de usuarios en SQL Server — altas visibles al iniciar sesión de inmediato</p>
+    </div>
+    <button type="button" class="salir" (click)="cerrarSesion()">Cerrar sesión</button>
+  </header>
+
+  @if (cuentas.error()) {
+    <p class="aviso error">{{ cuentas.error() }}</p>
+  }
+
+  @if (mensaje) {
+    <p class="aviso" [class.error]="mensajeTipo === 'error'">{{ mensaje }}</p>
+  }
+
+  <section class="panel-formulario">
+    <h2>{{ cuentas.editandoCuentaId ? 'Actualizar cuenta' : 'Alta de cuenta' }}</h2>
+
+    <form (ngSubmit)="guardar()" #cuentaForm="ngForm">
+      <div class="rejilla">
+        <div class="campo">
+          <label for="usuario">Usuario / No. Control</label>
+          <input id="usuario" name="usuario" type="text" required [(ngModel)]="cuentas.formulario.usuario" placeholder="Ej. A00112233" />
+        </div>
+
+        <div class="campo">
+          <label for="password">Contraseña</label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            [(ngModel)]="cuentas.formulario.password"
+            [required]="cuentas.editandoCuentaId === null"
+            [attr.placeholder]="cuentas.editandoCuentaId ? 'Dejar vacío para no cambiar' : 'Contraseña inicial'"
+          />
+        </div>
+
+        <div class="campo">
+          <label for="rol">Tipo de usuario</label>
+          <select id="rol" name="rol" required [(ngModel)]="cuentas.formulario.rol">
+            <option value="" disabled>Selecciona un rol</option>
+            <option value="admin">Administrador</option>
+            <option value="docente">Docente</option>
+            <option value="estudiante">Estudiante</option>
+            <option value="guardia">Guardia</option>
+          </select>
+        </div>
+
+        <div class="campo">
+          <label for="acceso">Acceso / notas</label>
+          <input id="acceso" name="acceso" type="text" required [(ngModel)]="cuentas.formulario.acceso" placeholder="Ej. N control y DD-MM-AA" />
+        </div>
+
+        <div class="campo ancho-completo">
+          <label for="nombrePerfil">Nombre en perfil</label>
+          <input id="nombrePerfil" name="nombrePerfil" type="text" [(ngModel)]="cuentas.formulario.nombrePerfil" placeholder="Nombre visible en mapa / perfil" />
+        </div>
+
+        <div class="campo">
+          <label for="vehiculo">Vehículo</label>
+          <input id="vehiculo" name="vehiculo" type="text" [(ngModel)]="cuentas.formulario.vehiculo" placeholder="Modelo" />
+        </div>
+
+        <div class="campo">
+          <label for="colorAuto">Color</label>
+          <input id="colorAuto" name="colorAuto" type="text" [(ngModel)]="cuentas.formulario.colorAuto" placeholder="Color del auto" />
+        </div>
+
+        <div class="campo">
+          <label for="matricula">Matrícula</label>
+          <input id="matricula" name="matricula" type="text" [(ngModel)]="cuentas.formulario.matricula" placeholder="Placas" />
+        </div>
+      </div>
+
+      <div class="acciones">
+        <button type="submit" [disabled]="cuentaForm.invalid || cuentas.cargando()">
+          {{ cuentas.editandoCuentaId ? 'Guardar cambios' : 'Agregar cuenta' }}
+        </button>
+        @if (cuentas.editandoCuentaId) {
+          <button class="secundario" type="button" (click)="cancelar()">Cancelar</button>
+        }
+      </div>
+    </form>
+  </section>
+
+  <section class="panel-tabla">
+    <h2>Listado de cuentas</h2>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Usuario</th>
+          <th>Rol</th>
+          <th>Acceso</th>
+          <th>Contraseña</th>
+          <th class="th-acciones">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        @if (cuentas.listaOrdenada().length === 0) {
+          <tr>
+            <td colspan="5" class="vacio">No hay registros todavía.</td>
+          </tr>
+        } @else {
+          @for (cuenta of cuentas.listaOrdenada(); track cuenta.id) {
+            <tr>
+              <td>{{ cuenta.usuario }}</td>
+              <td>{{ etiquetaRol(cuenta.rol) }}</td>
+              <td>{{ cuenta.acceso }}</td>
+              <td>••••••</td>
+              <td class="acciones-tabla">
+                <button class="boton-editar" type="button" (click)="editar(cuenta)">Cambiar</button>
+                <button class="boton-eliminar" type="button" (click)="eliminar(cuenta)">Baja</button>
+              </td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </section>
+</main>

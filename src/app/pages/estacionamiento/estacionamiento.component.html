@@ -1,0 +1,67 @@
+<div class="layout">
+  <div class="barra">
+    <div>
+      <h1>EstacionaTEC</h1>
+      <p>Selecciona tu cajón en el mapa o en la lista</p>
+    </div>
+    <button class="salir" (click)="cerrarSesion()">Cerrar sesión</button>
+  </div>
+
+  <div class="rejilla-principal">
+    
+    <div class="perfil">
+      <h2>Tu perfil</h2>
+      <dl>
+        <dt>Nombre</dt>
+        <dd>{{ auth.cuenta()?.nombrePerfil || '—' }}</dd>
+        
+        <dt>Rol</dt>
+        <dd style="text-transform: capitalize;">{{ auth.cuenta()?.rol || '—' }}</dd>
+        
+        <dt>Vehículo</dt>
+        <dd>{{ auth.cuenta()?.vehiculo || '—' }}</dd>
+        
+        <dt>Color</dt>
+        <dd>{{ auth.cuenta()?.colorAuto || '—' }}</dd>
+        
+        <dt>Matrícula</dt>
+        <dd>{{ auth.cuenta()?.matricula || '—' }}</dd>
+      </dl>
+      <div class="resumen-lugar">
+        <span class="muted">Cajón actual:</span> 
+        <strong>{{ miLugar() ? miLugar()?.id : 'Ninguno' }}</strong>
+      </div>
+    </div>
+
+    <div class="mapa-seccion">
+      
+      <div class="mapa-didactico">
+        <div id="mapaID" class="leaflet-map"></div>
+      </div>
+
+      <div class="lista-cajones">
+        <h3>Cajones en lista</h3>
+        <div class="leyenda">
+          <span><span class="punto libre"></span>Libre</span>
+          <span><span class="punto mio"></span>Tuyo</span>
+          <span><span class="punto ocupado"></span>Ocupado</span>
+        </div>
+        
+        <ul>
+          <li *ngFor="let lugar of parking.lugares()" 
+              class="cajon" 
+              [ngClass]="{
+                'libre': lugar.ocupadoPorId === null, 
+                'mio': lugar.ocupadoPorId === auth.cuenta()?.id, 
+                'ocupado': lugar.ocupadoPorId !== null && lugar.ocupadoPorId !== auth.cuenta()?.id
+              }"
+              (click)="seleccionar(lugar)">
+            <span class="id">{{ lugar.id }}</span>
+            <span>{{ lugar.ocupadoPorId === null ? 'Disponible' : (lugar.ocupadoPorId === auth.cuenta()?.id ? 'Tu lugar' : 'Ocupado') }}</span>
+          </li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+</div>
