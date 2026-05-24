@@ -13,12 +13,20 @@ authRouter.post('/login', async (req, res) => {
   }
 
   try {
-    // En Postgres usamos $1 y $2 para pasar los parámetros de forma segura contra SQL Injection
-    // Y le pasamos las variables dentro de un arreglo como segundo argumento
+    // Consultamos las columnas en minúsculas pero les ponemos ALIAS con comillas dobles
+    // para que el objeto de JavaScript mantenga las mayúsculas originales exactas.
     const result = await pool.query(
-      `SELECT Id, Usuario, Rol, Acceso, NombrePerfil, Vehiculo, ColorAuto, Matricula
-       FROM Usuarios
-       WHERE Usuario = $1 AND PasswordHash = $2`,
+      `SELECT 
+        id AS "Id", 
+        usuario AS "Usuario", 
+        rol AS "Rol", 
+        acceso AS "Acceso", 
+        nombreperfil AS "NombrePerfil", 
+        vehiculo AS "Vehiculo", 
+        colorauto AS "ColorAuto", 
+        matricula AS "Matricula"
+       FROM usuarios
+       WHERE usuario = $1 AND passwordhash = $2`,
       [usuario, password]
     );
 
