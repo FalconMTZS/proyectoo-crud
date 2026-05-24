@@ -1,7 +1,7 @@
 import cors from 'cors';
 import express from 'express';
 import dotenv from 'dotenv';
-import { getPool } from './db.js';
+import pool from './db.js';
 import { authRouter } from './routes/auth.js';
 import { cuentasRouter } from './routes/cuentas.js';
 import { lugaresRouter } from './routes/lugares.js';
@@ -14,10 +14,12 @@ const port = Number(process.env.PORT) || 3000;
 app.use(cors());
 app.use(express.json());
 
+// Ruta de verificación limpia conectada al pool de Postgres
 app.get('/api/health', async (_req, res) => {
   try {
-    await getPool();
-    res.json({ ok: true, database: process.env.DB_DATABASE || 'EstacionaTEC' });
+    // Hacemos una mini consulta de prueba para verificar que responda Neon
+    await pool.query('SELECT 1');
+    res.json({ ok: true, database: 'Neon Cloud Postgres' });
   } catch (err) {
     res.status(503).json({ ok: false, error: err.message });
   }
@@ -33,5 +35,5 @@ app.use((err, _req, res, _next) => {
 });
 
 app.listen(port, () => {
-  console.log(`API EstacionaTEC en http://localhost:${port}`);
+  console.log(`API EstacionaTEC en puerto ${port}`);
 });
