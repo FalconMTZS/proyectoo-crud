@@ -2,9 +2,8 @@ import pg from 'pg';
 const { Pool } = pg;
 import 'dotenv/config';
 
-// Al dejar el Pool vacío (), la librería 'pg' lee AUTOMÁTICAMENTE
-// las variables PGUSER, PGPASSWORD, PGHOST, PGDATABASE y PGPORT desde Render o tu .env
 const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
   ssl: {
     rejectUnauthorized: false
   }
