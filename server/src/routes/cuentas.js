@@ -12,9 +12,17 @@ const ROLES = new Set(['admin', 'docente', 'estudiante', 'guardia']);
 cuentasRouter.get('/', async (_req, res) => {
   try {
     const result = await pool.query(`
-      SELECT Id, Usuario, Rol, Acceso, NombrePerfil, Vehiculo, ColorAuto, Matricula
-      FROM Usuarios
-      ORDER BY Usuario
+      SELECT 
+        id AS "Id", 
+        usuario AS "Usuario", 
+        rol AS "Rol", 
+        acceso AS "Acceso", 
+        nombreperfil AS "NombrePerfil", 
+        vehiculo AS "Vehiculo", 
+        colorauto AS "ColorAuto", 
+        matricula AS "Matricula"
+      FROM usuarios
+      ORDER BY usuario
     `);
     res.json(result.rows.map(mapUsuarioRow));
   } catch (error) {
@@ -30,8 +38,17 @@ cuentasRouter.get('/:id', async (req, res) => {
   const id = Number(req.params.id);
   try {
     const result = await pool.query(`
-      SELECT Id, Usuario, Rol, Acceso, NombrePerfil, Vehiculo, ColorAuto, Matricula
-      FROM Usuarios WHERE Id = $1
+      SELECT 
+        id AS "Id", 
+        usuario AS "Usuario", 
+        rol AS "Rol", 
+        acceso AS "Acceso", 
+        nombreperfil AS "NombrePerfil", 
+        vehiculo AS "Vehiculo", 
+        colorauto AS "ColorAuto", 
+        matricula AS "Matricula"
+      FROM usuarios 
+      WHERE id = $1
     `, [id]);
 
     const row = result.rows[0];
@@ -64,16 +81,22 @@ cuentasRouter.post('/', async (req, res) => {
   }
 
   try {
-    // Usamos RETURNING en Postgres para obtener los datos insertados al instante
     const result = await pool.query(`
-      INSERT INTO Usuarios (Usuario, PasswordHash, Rol, Acceso, NombrePerfil, Vehiculo, ColorAuto, Matricula)
+      INSERT INTO usuarios (usuario, passwordhash, rol, acceso, nombreperfil, vehiculo, colorauto, matricula)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-      RETURNING Id, Usuario, Rol, Acceso, NombrePerfil, Vehiculo, ColorAuto, Matricula
+      RETURNING 
+        id AS "Id", 
+        usuario AS "Usuario", 
+        rol AS "Rol", 
+        acceso AS "Acceso", 
+        nombreperfil AS "NombrePerfil", 
+        vehiculo AS "Vehiculo", 
+        colorauto AS "ColorAuto", 
+        matricula AS "Matricula"
     `, [usuario, password, rol, acceso, nombrePerfil, vehiculo, colorAuto, matricula]);
 
     res.status(201).json(mapUsuarioRow(result.rows[0]));
   } catch (err) {
-    // El código '23505' en Postgres significa "llave duplicada" (Usuario único existente)
     if (err.code === '23505') {
       return res.status(409).json({ error: 'Ese usuario ya existe.' });
     }
@@ -102,23 +125,30 @@ cuentasRouter.put('/:id', async (req, res) => {
   }
 
   try {
-    // Construimos los parámetros e índices dinámicos de forma segura
     const params = [usuario, rol, acceso, nombrePerfil, vehiculo, colorAuto, matricula];
     let query = `
-      UPDATE Usuarios
-      SET Usuario = $1, Rol = $2, Acceso = $3,
-          NombrePerfil = $4, Vehiculo = $5,
-          ColorAuto = $6, Matricula = $7
+      UPDATE usuarios
+      SET usuario = $1, rol = $2, acceso = $3,
+          nombreperfil = $4, vehiculo = $5,
+          colorauto = $6, matricula = $7
     `;
 
     if (password) {
       params.push(password);
-      query += `, PasswordHash = $${params.length}`;
+      query += `, passwordhash = $${params.length}`;
     }
 
     params.push(id);
-    query += ` WHERE Id = $${params.length}
-              RETURNING Id, Usuario, Rol, Acceso, NombrePerfil, Vehiculo, ColorAuto, Matricula`;
+    query += ` WHERE id = $${params.length}
+              RETURNING 
+                id AS "Id", 
+                usuario AS "Usuario", 
+                rol AS "Rol", 
+                acceso AS "Acceso", 
+                nombreperfil AS "NombrePerfil", 
+                vehiculo AS "Vehiculo", 
+                colorauto AS "ColorAuto", 
+                matricula AS "Matricula"`;
 
     const result = await pool.query(query, params);
     const row = result.rows[0];
@@ -142,14 +172,13 @@ cuentasRouter.put('/:id', async (req, res) => {
 cuentasRouter.delete('/:id', async (req, res) => {
   const id = Number(req.params.id);
   try {
-    // Liberar el lugar antes de eliminar (Evita conflictos de llave foránea)
+    // Ajustado nombres de las columnas a minúsculas
     await pool.query(`
-      UPDATE Lugares SET OcupadoPorId = NULL, OcupadoPorNombre = NULL WHERE OcupadoPorId = $1
+      UPDATE lugares SET ocupadorporid = NULL, ocupadopornombre = NULL WHERE ocupadorporid = $1
     `, [id]);
 
-    const result = await pool.query('DELETE FROM Usuarios WHERE Id = $1', [id]);
+    const result = await pool.query('DELETE FROM usuarios WHERE id = $1', [id]);
 
-    // En 'pg', la cantidad de filas afectadas se lee desde 'rowCount'
     if (result.rowCount === 0) {
       return res.status(404).json({ error: 'Usuario no encontrado.' });
     }
