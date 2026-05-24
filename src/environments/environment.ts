@@ -1,5 +1,5 @@
 export const environment = {
   production: false,
-  apiUrl: 'http://localhost:3000/api',
+  apiUrl: 'https://proyectoo-crud.onrender.com/api',
   googleMapsApiKey: 'CLAVE_SIMULADA_ESCUELA_12345'
 };
