@@ -1,38 +1,20 @@
-import dotenv from 'dotenv';
+import pg from 'pg'; // Cambiado a import
+const { Pool } = pg;
+import 'dotenv/config'; // Cambiado a import
 
-dotenv.config();
-
-const trusted = process.env.DB_TRUSTED_CONNECTION !== 'false';
-
-/** En Windows, la autenticación integrada (como SSMS) requiere msnodesqlv8. */
-const sql = trusted
-  ? (await import('mssql/msnodesqlv8.js')).default
-  : (await import('mssql')).default;
-
-const config = {
-  server: process.env.DB_SERVER || 'F41C0N\\MSSQLSERVER1',
-  database: process.env.DB_DATABASE || 'EstacionaTEC',
-  ...(process.env.DB_PORT ? { port: Number(process.env.DB_PORT) } : {}),
-  options: {
-    encrypt: false,
-    trustServerCertificate: true,
-    ...(trusted ? { trustedConnection: true } : {})
-  },
-  ...(!trusted
-    ? {
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD
-      }
-    : {})
-};
-
-let pool = null;
-
-export async function getPool() {
-  if (!pool) {
-    pool = await sql.connect(config);
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false
   }
-  return pool;
-}
+});
 
-export { sql };
+pool.query('SELECT NOW()', (err, res) => {
+  if (err) {
+    console.error('❌ Error de conexión con el Postgres de Neon:', err.stack);
+  } else {
+    console.log('⚡ ¡Espectacular! Servidor conectado exitosamente a Neon en la nube.');
+  }
+});
+
+export default pool; // Cambiado a export default

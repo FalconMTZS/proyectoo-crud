@@ -1,39 +1,59 @@
 import { Router } from 'express';
-import { getPool, sql } from '../db.js';
+import pool from '../db.js';
 import { etiquetaRol, mapLugarRow } from '../mappers.js';
 
 export const lugaresRouter = Router();
 
+// ==========================================
+// 1. OBTENER TODOS LOS LUGARES
+// ==========================================
 lugaresRouter.get('/', async (_req, res) => {
-  const pool = await getPool();
-  const result = await pool.request().query(`
-    SELECT Id, Lat, Lng, OcupadoPorId, OcupadoPorNombre
-    FROM dbo.Lugares
-    ORDER BY Id
-  `);
-  res.json(result.recordset.map(mapLugarRow));
-});
-
-lugaresRouter.get('/ingresos/ultimo', async (_req, res) => {
-  const pool = await getPool();
-  const result = await pool.request().query(`
-    SELECT TOP 1 UsuarioNombre AS usuario, RolEtiqueta AS rolEtiqueta,
-           LugarId AS lugarId, FechaHora AS fechaHora
-    FROM dbo.Ingresos
-    ORDER BY FechaHora DESC
-  `);
-  const row = result.recordset[0];
-  if (!row) {
-    return res.json(null);
+  try {
+    const result = await pool.query(`
+      SELECT Id, Lat, Lng, OcupadoPorId, OcupadoPorNombre
+      FROM Lugares
+      ORDER BY Id
+    `);
+    res.json(result.rows.map(mapLugarRow));
+  } catch (error) {
+    console.error('Error al obtener lugares:', error);
+    res.status(500).json({ error: 'Error interno del servidor.' });
   }
-  res.json({
-    usuario: row.usuario,
-    rolEtiqueta: row.rolEtiqueta,
-    lugarId: row.lugarId,
-    fechaHora: row.fechaHora.toISOString()
-  });
 });
 
+// ==========================================
+// 2. OBTENER EL ÚLTIMO INGRESO registrado
+// ==========================================
+lugaresRouter.get('/ingresos/ultimo', async (_req, res) => {
+  try {
+    // Usamos LIMIT 1 al final en lugar de TOP 1
+    const result = await pool.query(`
+      SELECT UsuarioNombre AS usuario, RolEtiqueta AS rolEtiqueta,
+             LugarId AS lugarId, FechaHora AS fechaHora
+      FROM Ingresos
+      ORDER BY FechaHora DESC
+      LIMIT 1
+    `);
+    
+    const row = result.rows[0];
+    if (!row) {
+      return res.json(null);
+    }
+    res.json({
+      usuario: row.usuario,
+      rolEtiqueta: row.rolEtiqueta,
+      lugarId: row.lugarId,
+      fechaHora: row.fechaHora.toISOString()
+    });
+  } catch (error) {
+    console.error('Error al obtener el último ingreso:', error);
+    res.status(500).json({ error: 'Error interno del servidor.' });
+  }
+});
+
+// ==========================================
+// 3. ASIGNAR / OCUPAR UN CAJÓN (Con Transacción)
+// ==========================================
 lugaresRouter.post('/:id/asignar', async (req, res) => {
   const lugarId = req.params.id;
   const usuarioId = Number(req.body?.usuarioId);
@@ -42,84 +62,75 @@ lugaresRouter.post('/:id/asignar', async (req, res) => {
     return res.status(400).json({ error: 'Lugar y usuario son obligatorios.' });
   }
 
-  const pool = await getPool();
-  const tx = new sql.Transaction(pool);
-  await tx.begin();
+  // Apartamos un cliente exclusivo del Pool para manejar la transacción de forma segura
+  const client = await pool.connect();
 
   try {
-    const usuarioReq = new sql.Request(tx);
-    usuarioReq.input('id', sql.Int, usuarioId);
-    const usuarioRes = await usuarioReq.query(`
+    await client.query('BEGIN'); // Iniciamos la transacción en Neon
+
+    // A. Validar que exista el usuario
+    const usuarioRes = await client.query(`
       SELECT Id, Usuario, Rol, Acceso, NombrePerfil, Vehiculo, ColorAuto, Matricula
-      FROM dbo.Usuarios WHERE Id = @id
-    `);
-    const usuario = usuarioRes.recordset[0];
+      FROM Usuarios WHERE Id = $1
+    `, [usuarioId]);
+    
+    const usuario = usuarioRes.rows[0];
     if (!usuario) {
-      await tx.rollback();
+      await client.query('ROLLBACK');
       return res.status(404).json({ error: 'Usuario no encontrado.' });
     }
 
-    const lugarReq = new sql.Request(tx);
-    lugarReq.input('lugarId', sql.NVarChar(10), lugarId);
-    const lugarRes = await lugarReq.query(`
+    // B. Validar el estado actual del cajón
+    const lugarRes = await client.query(`
       SELECT Id, Lat, Lng, OcupadoPorId, OcupadoPorNombre
-      FROM dbo.Lugares WHERE Id = @lugarId
-    `);
-    const lugar = lugarRes.recordset[0];
+      FROM Lugares WHERE Id = $1
+    `, [lugarId]);
+    
+    const lugar = lugarRes.rows[0];
     if (!lugar) {
-      await tx.rollback();
+      await client.query('ROLLBACK');
       return res.status(404).json({ error: 'Cajón no encontrado.' });
     }
-    if (lugar.OcupadoPorId !== null && lugar.OcupadoPorId !== usuarioId) {
-      await tx.rollback();
+    if (lugar.ocupadoporid !== null && lugar.ocupadoporid !== usuarioId) {
+      await client.query('ROLLBACK');
       return res.status(409).json({ error: 'Este cajón ya está ocupado.' });
     }
 
-    const nombre = usuario.NombrePerfil || usuario.Usuario;
+    const nombre = usuario.nombreperfil || usuario.usuario;
 
-    const liberaReq = new sql.Request(tx);
-    liberaReq.input('usuarioId', sql.Int, usuarioId);
-    liberaReq.input('lugarId', sql.NVarChar(10), lugarId);
-    await liberaReq.query(`
-      UPDATE dbo.Lugares
+    // C. Si el usuario ya tenía otro cajón apartado, lo liberamos (Evita duplicados)
+    await client.query(`
+      UPDATE Lugares
       SET OcupadoPorId = NULL, OcupadoPorNombre = NULL
-      WHERE OcupadoPorId = @usuarioId AND Id <> @lugarId
-    `);
+      WHERE OcupadoPorId = $1 AND Id <> $2
+    `, [usuarioId, lugarId]);
 
-    const asignaReq = new sql.Request(tx);
-    asignaReq.input('usuarioId', sql.Int, usuarioId);
-    asignaReq.input('nombre', sql.NVarChar(120), nombre);
-    asignaReq.input('lugarId', sql.NVarChar(10), lugarId);
-    await asignaReq.query(`
-      UPDATE dbo.Lugares
-      SET OcupadoPorId = @usuarioId, OcupadoPorNombre = @nombre
-      WHERE Id = @lugarId
-    `);
+    // D. Asignamos el nuevo cajón
+    await client.query(`
+      UPDATE Lugares
+      SET OcupadoPorId = $1, OcupadoPorNombre = $2
+      WHERE Id = $3
+    `, [usuarioId, nombre, lugarId]);
 
-    const ingresoReq = new sql.Request(tx);
-    ingresoReq.input('usuarioId', sql.Int, usuarioId);
-    ingresoReq.input('lugarId', sql.NVarChar(10), lugarId);
-    ingresoReq.input('nombre', sql.NVarChar(120), nombre);
-    ingresoReq.input('rolEtiqueta', sql.NVarChar(40), etiquetaRol(usuario.Rol));
-    await ingresoReq.query(`
-      INSERT INTO dbo.Ingresos (UsuarioId, LugarId, UsuarioNombre, RolEtiqueta)
-      VALUES (@usuarioId, @lugarId, @nombre, @rolEtiqueta)
-    `);
+    // E. Insertamos el registro en el historial de Ingresos
+    await client.query(`
+      INSERT INTO Ingresos (UsuarioId, LugarId, UsuarioNombre, RolEtiqueta)
+      VALUES ($1, $2, $3, $4)
+    `, [usuarioId, lugarId, nombre, etiquetaRol(usuario.rol)]);
 
-    await tx.commit();
+    await client.query('COMMIT'); // Guardamos definitivamente todos los cambios en la nube
 
-    const lugaresRes = await pool.request().query(`
-      SELECT Id, Lat, Lng, OcupadoPorId, OcupadoPorNombre FROM dbo.Lugares ORDER BY Id
-    `);
-    const ultimoRes = await pool.request().query(`
-      SELECT TOP 1 UsuarioNombre AS usuario, RolEtiqueta AS rolEtiqueta,
+    // F. Consultas finales de respuesta para refrescar la interfaz de Angular
+    const lugaresRes = await pool.query(`SELECT Id, Lat, Lng, OcupadoPorId, OcupadoPorNombre FROM Lugares ORDER BY Id`);
+    const ultimoRes = await pool.query(`
+      SELECT UsuarioNombre AS usuario, RolEtiqueta AS rolEtiqueta,
              LugarId AS lugarId, FechaHora AS fechaHora
-      FROM dbo.Ingresos ORDER BY FechaHora DESC
+      FROM Ingresos ORDER BY FechaHora DESC LIMIT 1
     `);
-    const u = ultimoRes.recordset[0];
+    const u = ultimoRes.rows[0];
 
     res.json({
-      lugares: lugaresRes.recordset.map(mapLugarRow),
+      lugares: lugaresRes.rows.map(mapLugarRow),
       ultimoIngreso: u
         ? {
             usuario: u.usuario,
@@ -130,7 +141,10 @@ lugaresRouter.post('/:id/asignar', async (req, res) => {
         : null
     });
   } catch (err) {
-    await tx.rollback();
-    throw err;
+    await client.query('ROLLBACK'); // Si algo falla, cancelamos todo el proceso
+    console.error('Error crítico en la transacción de asignación:', err);
+    res.status(500).json({ error: 'Error interno del servidor al asignar cajón.' });
+  } finally {
+    client.release(); // SÚPER IMPORTANTE: Devolvemos el cliente al pool para no saturar a Neon
   }
 });

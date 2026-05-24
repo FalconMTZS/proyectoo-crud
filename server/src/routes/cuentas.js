@@ -1,38 +1,53 @@
 import { Router } from 'express';
-import { getPool, sql } from '../db.js';
+import pool from '../db.js';
 import { mapUsuarioRow } from '../mappers.js';
 
 export const cuentasRouter = Router();
 
 const ROLES = new Set(['admin', 'docente', 'estudiante', 'guardia']);
 
+// ==========================================
+// 1. OBTENER TODOS LOS USUARIOS
+// ==========================================
 cuentasRouter.get('/', async (_req, res) => {
-  const pool = await getPool();
-  const result = await pool.request().query(`
-    SELECT Id, Usuario, Rol, Acceso, NombrePerfil, Vehiculo, ColorAuto, Matricula
-    FROM dbo.Usuarios
-    ORDER BY Usuario
-  `);
-  res.json(result.recordset.map(mapUsuarioRow));
+  try {
+    const result = await pool.query(`
+      SELECT Id, Usuario, Rol, Acceso, NombrePerfil, Vehiculo, ColorAuto, Matricula
+      FROM Usuarios
+      ORDER BY Usuario
+    `);
+    res.json(result.rows.map(mapUsuarioRow));
+  } catch (error) {
+    console.error('Error al obtener usuarios:', error);
+    res.status(500).json({ error: 'Error interno del servidor.' });
+  }
 });
 
+// ==========================================
+// 2. OBTENER UN USUARIO POR ID
+// ==========================================
 cuentasRouter.get('/:id', async (req, res) => {
   const id = Number(req.params.id);
-  const pool = await getPool();
-  const result = await pool
-    .request()
-    .input('id', sql.Int, id)
-    .query(`
+  try {
+    const result = await pool.query(`
       SELECT Id, Usuario, Rol, Acceso, NombrePerfil, Vehiculo, ColorAuto, Matricula
-      FROM dbo.Usuarios WHERE Id = @id
-    `);
-  const row = result.recordset[0];
-  if (!row) {
-    return res.status(404).json({ error: 'Usuario no encontrado.' });
+      FROM Usuarios WHERE Id = $1
+    `, [id]);
+
+    const row = result.rows[0];
+    if (!row) {
+      return res.status(404).json({ error: 'Usuario no encontrado.' });
+    }
+    res.json(mapUsuarioRow(row));
+  } catch (error) {
+    console.error('Error al obtener usuario por ID:', error);
+    res.status(500).json({ error: 'Error interno del servidor.' });
   }
-  res.json(mapUsuarioRow(row));
 });
 
+// ==========================================
+// 3. CREAR NUEVO USUARIO
+// ==========================================
 cuentasRouter.post('/', async (req, res) => {
   const body = req.body ?? {};
   const usuario = String(body.usuario ?? '').trim();
@@ -48,33 +63,28 @@ cuentasRouter.post('/', async (req, res) => {
     return res.status(400).json({ error: 'Datos incompletos o rol inválido.' });
   }
 
-  const pool = await getPool();
   try {
-    const result = await pool
-      .request()
-      .input('usuario', sql.NVarChar(80), usuario)
-      .input('password', sql.NVarChar(200), password)
-      .input('rol', sql.NVarChar(20), rol)
-      .input('acceso', sql.NVarChar(200), acceso)
-      .input('nombrePerfil', sql.NVarChar(120), nombrePerfil)
-      .input('vehiculo', sql.NVarChar(80), vehiculo)
-      .input('colorAuto', sql.NVarChar(60), colorAuto)
-      .input('matricula', sql.NVarChar(30), matricula)
-      .query(`
-        INSERT INTO dbo.Usuarios (Usuario, PasswordHash, Rol, Acceso, NombrePerfil, Vehiculo, ColorAuto, Matricula)
-        OUTPUT INSERTED.Id, INSERTED.Usuario, INSERTED.Rol, INSERTED.Acceso,
-               INSERTED.NombrePerfil, INSERTED.Vehiculo, INSERTED.ColorAuto, INSERTED.Matricula
-        VALUES (@usuario, @password, @rol, @acceso, @nombrePerfil, @vehiculo, @colorAuto, @matricula)
-      `);
-    res.status(201).json(mapUsuarioRow(result.recordset[0]));
+    // Usamos RETURNING en Postgres para obtener los datos insertados al instante
+    const result = await pool.query(`
+      INSERT INTO Usuarios (Usuario, PasswordHash, Rol, Acceso, NombrePerfil, Vehiculo, ColorAuto, Matricula)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING Id, Usuario, Rol, Acceso, NombrePerfil, Vehiculo, ColorAuto, Matricula
+    `, [usuario, password, rol, acceso, nombrePerfil, vehiculo, colorAuto, matricula]);
+
+    res.status(201).json(mapUsuarioRow(result.rows[0]));
   } catch (err) {
-    if (err.number === 2627 || err.number === 2601) {
+    // El código '23505' en Postgres significa "llave duplicada" (Usuario único existente)
+    if (err.code === '23505') {
       return res.status(409).json({ error: 'Ese usuario ya existe.' });
     }
-    throw err;
+    console.error('Error al crear usuario:', err);
+    res.status(500).json({ error: 'Error interno del servidor.' });
   }
 });
 
+// ==========================================
+// 4. ACTUALIZAR USUARIO
+// ==========================================
 cuentasRouter.put('/:id', async (req, res) => {
   const id = Number(req.params.id);
   const body = req.body ?? {};
@@ -91,66 +101,61 @@ cuentasRouter.put('/:id', async (req, res) => {
     return res.status(400).json({ error: 'Datos incompletos o rol inválido.' });
   }
 
-  const pool = await getPool();
-  const passwordClause = password
-    ? ', PasswordHash = @password'
-    : '';
-
   try {
-    const request = pool
-      .request()
-      .input('id', sql.Int, id)
-      .input('usuario', sql.NVarChar(80), usuario)
-      .input('rol', sql.NVarChar(20), rol)
-      .input('acceso', sql.NVarChar(200), acceso)
-      .input('nombrePerfil', sql.NVarChar(120), nombrePerfil)
-      .input('vehiculo', sql.NVarChar(80), vehiculo)
-      .input('colorAuto', sql.NVarChar(60), colorAuto)
-      .input('matricula', sql.NVarChar(30), matricula);
+    // Construimos los parámetros e índices dinámicos de forma segura
+    const params = [usuario, rol, acceso, nombrePerfil, vehiculo, colorAuto, matricula];
+    let query = `
+      UPDATE Usuarios
+      SET Usuario = $1, Rol = $2, Acceso = $3,
+          NombrePerfil = $4, Vehiculo = $5,
+          ColorAuto = $6, Matricula = $7
+    `;
 
     if (password) {
-      request.input('password', sql.NVarChar(200), password);
+      params.push(password);
+      query += `, PasswordHash = $${params.length}`;
     }
 
-    const result = await request.query(`
-      UPDATE dbo.Usuarios
-      SET Usuario = @usuario, Rol = @rol, Acceso = @acceso,
-          NombrePerfil = @nombrePerfil, Vehiculo = @vehiculo,
-          ColorAuto = @colorAuto, Matricula = @matricula
-          ${passwordClause}
-      OUTPUT INSERTED.Id, INSERTED.Usuario, INSERTED.Rol, INSERTED.Acceso,
-             INSERTED.NombrePerfil, INSERTED.Vehiculo, INSERTED.ColorAuto, INSERTED.Matricula
-      WHERE Id = @id
-    `);
+    params.push(id);
+    query += ` WHERE Id = $${params.length}
+              RETURNING Id, Usuario, Rol, Acceso, NombrePerfil, Vehiculo, ColorAuto, Matricula`;
 
-    const row = result.recordset[0];
+    const result = await pool.query(query, params);
+    const row = result.rows[0];
+
     if (!row) {
       return res.status(404).json({ error: 'Usuario no encontrado.' });
     }
     res.json(mapUsuarioRow(row));
   } catch (err) {
-    if (err.number === 2627 || err.number === 2601) {
+    if (err.code === '23505') {
       return res.status(409).json({ error: 'Ese usuario ya existe.' });
     }
-    throw err;
+    console.error('Error al actualizar usuario:', err);
+    res.status(500).json({ error: 'Error interno del servidor.' });
   }
 });
 
+// ==========================================
+// 5. ELIMINAR USUARIO
+// ==========================================
 cuentasRouter.delete('/:id', async (req, res) => {
   const id = Number(req.params.id);
-  const pool = await getPool();
+  try {
+    // Liberar el lugar antes de eliminar (Evita conflictos de llave foránea)
+    await pool.query(`
+      UPDATE Lugares SET OcupadoPorId = NULL, OcupadoPorNombre = NULL WHERE OcupadoPorId = $1
+    `, [id]);
 
-  await pool.request().input('id', sql.Int, id).query(`
-    UPDATE dbo.Lugares SET OcupadoPorId = NULL, OcupadoPorNombre = NULL WHERE OcupadoPorId = @id
-  `);
+    const result = await pool.query('DELETE FROM Usuarios WHERE Id = $1', [id]);
 
-  const result = await pool
-    .request()
-    .input('id', sql.Int, id)
-    .query('DELETE FROM dbo.Usuarios WHERE Id = @id');
-
-  if (result.rowsAffected[0] === 0) {
-    return res.status(404).json({ error: 'Usuario no encontrado.' });
+    // En 'pg', la cantidad de filas afectadas se lee desde 'rowCount'
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Usuario no encontrado.' });
+    }
+    res.status(204).send();
+  } catch (error) {
+    console.error('Error al eliminar usuario:', error);
+    res.status(500).json({ error: 'Error interno del servidor.' });
   }
-  res.status(204).send();
 });
